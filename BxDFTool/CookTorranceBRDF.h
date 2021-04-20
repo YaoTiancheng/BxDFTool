@@ -1,12 +1,10 @@
 #pragma once
 
 #include <math.h>
-#include <algorithm>
-#define _USE_MATH_DEFINES
 #include "DirectXMath.h"
 #include "LightingContext.h"
 
-DirectX::XMFLOAT3 GGXSampleHemisphere( const DirectX::XMFLOAT2& sample, float alpha )
+inline DirectX::XMFLOAT3 GGXSampleHemisphere( const DirectX::XMFLOAT2& sample, float alpha )
 {
     float theta = atan( alpha * sqrt( sample.x / ( 1.0f - sample.x ) ) );
     float phi = 2.0f * (float)M_PI * sample.y;
@@ -15,7 +13,7 @@ DirectX::XMFLOAT3 GGXSampleHemisphere( const DirectX::XMFLOAT2& sample, float al
     return DirectX::XMFLOAT3( cos( phi ) * s, sin( phi ) * s, cos( theta ) );
 }
 
-float EvaluateGGXMicrofacetDistribution( const DirectX::XMFLOAT3& m, float alpha )
+inline float EvaluateGGXMicrofacetDistribution( const DirectX::XMFLOAT3& m, float alpha )
 {
     float alpha2 = alpha * alpha;
     float NdotM = m.z;
@@ -25,18 +23,18 @@ float EvaluateGGXMicrofacetDistribution( const DirectX::XMFLOAT3& m, float alpha
     return alpha2 / denominator;
 }
 
-float EvaluateGGXMicrofacetDistributionPdf( const DirectX::XMFLOAT3& m, float alpha )
+inline float EvaluateGGXMicrofacetDistributionPdf( const DirectX::XMFLOAT3& m, float alpha )
 {
     return EvaluateGGXMicrofacetDistribution( m, alpha ) * m.z;
 }
 
-void SampleGGXMicrofacetDistribution( const DirectX::XMFLOAT2& sample, float alpha, DirectX::XMFLOAT3* m, float* pdf )
+inline void SampleGGXMicrofacetDistribution( const DirectX::XMFLOAT2& sample, float alpha, DirectX::XMFLOAT3* m, float* pdf )
 {
     *m = GGXSampleHemisphere( sample, alpha );
     *pdf = EvaluateGGXMicrofacetDistributionPdf( *m, alpha );
 }
 
-void SampleGGXMicrofacetDistribution( const DirectX::XMFLOAT2& sample, float alpha, DirectX::XMFLOAT3* m )
+inline void SampleGGXMicrofacetDistribution( const DirectX::XMFLOAT2& sample, float alpha, DirectX::XMFLOAT3* m )
 {
     *m = GGXSampleHemisphere( sample, alpha );
 }
@@ -45,20 +43,20 @@ void SampleGGXMicrofacetDistribution( const DirectX::XMFLOAT2& sample, float alp
 // GGX geometric shadowing
 //
 
-float EvaluateGGXGeometricShadowingOneDirection( float alpha2, const DirectX::XMFLOAT3& w )
+inline float EvaluateGGXGeometricShadowingOneDirection( float alpha2, const DirectX::XMFLOAT3& w )
 {
     float NdotW = abs( w.z );
     float denominator = sqrtf( alpha2 + ( 1.0f - alpha2 ) * NdotW * NdotW ) + NdotW;
     return 2.0f * NdotW / denominator;
 }
 
-float EvaluateGGXGeometricShadowing( const DirectX::XMFLOAT3& wi, const DirectX::XMFLOAT3& wo, float alpha )
+inline float EvaluateGGXGeometricShadowing( const DirectX::XMFLOAT3& wi, const DirectX::XMFLOAT3& wo, float alpha )
 {
     float alpha2 = alpha * alpha;
     return EvaluateGGXGeometricShadowingOneDirection( alpha2, wi ) * EvaluateGGXGeometricShadowingOneDirection( alpha2, wo );
 }
 
-float EvaluateDielectricFresnel( float WOdotM, float etaI, float etaT )
+inline float EvaluateDielectricFresnel( float WOdotM, float etaI, float etaT )
 {
     float cosThetaI = WOdotM;
     float sinThetaI = sqrtf( 1.0f - cosThetaI * cosThetaI );
@@ -79,7 +77,7 @@ float EvaluateDielectricFresnel( float WOdotM, float etaI, float etaT )
 // Cook-Torrance microfacet BRDF
 //
 
-float EvaluateCookTorranceMircofacetBRDF( const DirectX::XMFLOAT3& wi, const DirectX::XMFLOAT3& wo, float alpha, float etaI, float etaT, const SLightingContext& lightingContext )
+inline float EvaluateCookTorranceMircofacetBRDF( const DirectX::XMFLOAT3& wi, const DirectX::XMFLOAT3& wo, float alpha, float etaI, float etaT, const SLightingContext& lightingContext )
 {
     float WIdotN = lightingContext.WIdotN;
     float WOdotN = lightingContext.WOdotN;
@@ -94,7 +92,7 @@ float EvaluateCookTorranceMircofacetBRDF( const DirectX::XMFLOAT3& wi, const Dir
     return EvaluateGGXMicrofacetDistribution( m, alpha ) * EvaluateGGXGeometricShadowing( wi, wo, alpha ) * EvaluateDielectricFresnel( std::min( 1.0f, WOdotM ), etaI, etaT ) / ( 4.0f * WIdotN * WOdotN );
 }
 
-float EvaluateCookTorranceMicrofacetBRDFPdf( const DirectX::XMFLOAT3& wi, const DirectX::XMFLOAT3& wo, float alpha, const SLightingContext& lightingContext )
+inline float EvaluateCookTorranceMicrofacetBRDFPdf( const DirectX::XMFLOAT3& wi, const DirectX::XMFLOAT3& wo, float alpha, const SLightingContext& lightingContext )
 {
     float WIdotN = lightingContext.WIdotN;
     if ( WIdotN <= 0.0f )
@@ -106,7 +104,7 @@ float EvaluateCookTorranceMicrofacetBRDFPdf( const DirectX::XMFLOAT3& wi, const 
     return pdf / ( 4.0f * WOdotM );
 }
 
-void SampleCookTorranceMicrofacetBRDF( const DirectX::XMFLOAT3& wo, const DirectX::XMFLOAT2& sample, float alpha, float etaI, float etaT, DirectX::XMFLOAT3* wi, float* value, float* pdf, SLightingContext* lightingContext )
+inline void SampleCookTorranceMicrofacetBRDF( const DirectX::XMFLOAT3& wo, const DirectX::XMFLOAT2& sample, float alpha, float etaI, float etaT, DirectX::XMFLOAT3* wi, float* value, float* pdf, SLightingContext* lightingContext )
 {
     if ( alpha >= 0.001f )
     {
