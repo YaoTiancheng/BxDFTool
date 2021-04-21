@@ -10,7 +10,6 @@
 #include <cmath>
 #include <thread>
 #include <functional>
-#include <atomic>
 #include <vector>
 #include <list>
 #include <cassert>

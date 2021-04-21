@@ -16,3 +16,12 @@ struct SEnergyIntegral
     uint32_t m_SliceSize;
     float*   m_OutputBuffer;
 };
+
+struct SAverageEnergyIntegral
+{
+    void Execute( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
+
+    float*   m_EnergyBuffer;
+    uint32_t m_CosThetaCount;
+    float*   m_OutputBuffer;
+};

@@ -7,39 +7,31 @@ namespace MP
 
     struct SDispatchContext
     {
-        uint32_t         m_ThreadSize;
-        LaneFunctionType m_LaneFunction;
+        SDispatchContext( uint32_t threadSize, uint32_t threadCount, LaneFunctionType laneFunction ) 
+            : m_ThreadSize( threadSize ), m_ThreadCount( threadCount ), m_LaneFunction( laneFunction ), m_NextThreadIndex( 0 )
+        {}
+
+        const uint32_t          m_ThreadSize;
+        const uint32_t          m_ThreadCount;
+        const LaneFunctionType  m_LaneFunction;
+
+        std::atomic_uint32_t    m_NextThreadIndex;
     };
 
 
     class CWorkerThread
     {
     public:
-        explicit CWorkerThread( const SDispatchContext* context );
+        explicit CWorkerThread( SDispatchContext* context );
 
         ~CWorkerThread();
 
-        void     Deactive() { m_IsDeactived.store( true ); }
-
-        bool     IsDeactived() { return m_IsDeactived.load(); }
-
         void     Join();
 
-        void     KickOff() { m_IsDone.store( false ); }
-
-        bool     IsDone() { return m_IsDone.load(); }
-
-        void     SetThreadIndex( uint32_t value ) { m_ThreadIndex = value; }
-
-
     private:
-        void Execute();
+        void     Execute();
 
-        const SDispatchContext* m_Context;
+        SDispatchContext*       m_Context;
         std::thread*            m_Thread = nullptr;
-
-        uint32_t                m_ThreadIndex = 0;
-        std::atomic<bool>       m_IsDone;
-        std::atomic<bool>       m_IsDeactived;
     };
 }
