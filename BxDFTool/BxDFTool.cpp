@@ -16,9 +16,9 @@ void PrintEnergyBuffer( float* buffer, uint32_t column, uint32_t row, uint32_t s
             for ( uint32_t iColumn = 0; iColumn < column; ++iColumn )
             {
                 float value = *pBuffer;
-                value = std::roundf( std::min( 1.0f, value ) * 65535.0f );
-                //printf( "%9.7ff, ", *pBuffer );
-                printf( "%5d, ", (uint16_t)value );
+                //value = std::roundf( std::min( 1.0f, value ) * 65535.0f );
+                printf( "%9.7ff, ", *pBuffer );
+                //printf( "%5d, ", (uint16_t)value );
                 pBuffer++;
             }
             printf( "\n" );
@@ -29,12 +29,13 @@ void PrintEnergyBuffer( float* buffer, uint32_t column, uint32_t row, uint32_t s
 
 int main()
 {
-    uint32_t alphaCount = 16;
+    uint32_t alphaCount = 32;
     uint32_t cosThetaCount = 32;
     uint32_t etaCount = 1;
     uint32_t sampleCount = 960000;
     bool     outputEnergyBuffer = true;
     bool     outputAverageEnergyBuffer = true;
+    bool     outputInverseCDF = true;
     float    etaI = 0.0f;
     float    etaTBegin = 1.0f;
     float    etaTEnd = 3.0f;
@@ -91,8 +92,31 @@ int main()
         PrintEnergyBuffer( outputBuffer, alphaCount, 1, 1 );
 
         delete[] outputBuffer;
-        delete[] energyBuffer;
     }
+
+    if ( outputInverseCDF )
+    {
+        uint32_t threadSize = 1;
+        uint32_t threadCount = alphaCount;
+
+        float* outputBuffer = new float[ cosThetaCount * alphaCount ];
+        SComputeInvCDF invCDF;
+        invCDF.m_CosThetaCount = cosThetaCount;
+        invCDF.m_EnergyBuffer  = energyBuffer;
+        invCDF.m_OutputBuffer  = outputBuffer;
+
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+        using std::placeholders::_3;
+        MP::LaneFunctionType laneFunction = std::bind( &SComputeInvCDF::Execute, &invCDF, _1, _2, _3 );
+        MP::Dispatch( threadSize, threadCount, laneFunction );
+
+        PrintEnergyBuffer( outputBuffer, cosThetaCount, alphaCount, 1 );
+
+        delete[] outputBuffer;
+    }
+
+    delete[] energyBuffer;
 }
 
 

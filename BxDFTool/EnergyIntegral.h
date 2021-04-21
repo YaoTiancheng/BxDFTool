@@ -25,3 +25,12 @@ struct SAverageEnergyIntegral
     uint32_t m_CosThetaCount;
     float*   m_OutputBuffer;
 };
+
+struct SComputeInvCDF
+{
+    void Execute( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
+
+    float*   m_EnergyBuffer;
+    uint32_t m_CosThetaCount;
+    float*   m_OutputBuffer;
+};
