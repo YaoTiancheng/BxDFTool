@@ -13,7 +13,7 @@ struct SEnergyIntegral
     float    m_EtaBegin;
     float    m_EtaI;
     uint32_t m_SampleCount;
-    uint32_t m_SliceSize;
+    uint32_t m_AlphaCount;
     float*   m_OutputBuffer;
 };
 

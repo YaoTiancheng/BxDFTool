@@ -33,8 +33,8 @@ static float EstimateEnergy( float cosTheta, float alpha, float etaI, float etaT
 void SEnergyIntegral::Execute( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex )
 {
     float cosTheta = std::max( localLaneIndex * m_CosThetaInterval, 0.0001f );
-    float alpha    = ( threadIndex % m_SliceSize ) * m_AlphaInterval;
-    float etaT     = m_EtaBegin + ( threadIndex / m_SliceSize ) * m_EtaInterval;
+    float alpha    = ( threadIndex % m_AlphaCount ) * m_AlphaInterval;
+    float etaT     = m_EtaBegin + ( threadIndex / m_AlphaCount ) * m_EtaInterval;
     m_OutputBuffer[ globalLaneIndex ] = EstimateEnergy( cosTheta, alpha, m_EtaI, etaT, m_SampleCount, &m_Rngs[ threadIndex ] );
 }
 

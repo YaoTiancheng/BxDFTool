@@ -52,7 +52,7 @@ int main()
         integral.m_EtaBegin         = etaTBegin;
         integral.m_EtaInterval      = etaCount > 1 ? ( etaTEnd - integral.m_EtaBegin ) / ( etaCount - 1 ) : 0.0f;
         integral.m_EtaI             = etaI;
-        integral.m_SliceSize        = alphaCount;
+        integral.m_AlphaCount       = alphaCount;
         integral.m_OutputBuffer     = energyBuffer;
         integral.m_Rngs             = rngs;
         integral.m_SampleCount      = sampleCount;
