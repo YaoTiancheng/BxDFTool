@@ -86,6 +86,8 @@ void SComputeInvCDF::Execute( uint32_t threadIndex, uint32_t localLaneIndex, uin
     }
     samples[ m_CosThetaCount - 1 ] = 1.0f;
 
+    m_PDFScaleOutputBuffer[ threadIndex ] = CDFMax / m_MaxPDFScale;
+
     // Get inverse CDF
     float* invCDFSamples = m_OutputBuffer + threadIndex * m_CosThetaCount;
     float interval = 1.0f / ( m_CosThetaCount - 1 );

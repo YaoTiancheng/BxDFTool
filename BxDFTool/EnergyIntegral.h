@@ -33,4 +33,6 @@ struct SComputeInvCDF
     float*   m_EnergyBuffer;
     uint32_t m_CosThetaCount;
     float*   m_OutputBuffer;
+    float*   m_PDFScaleOutputBuffer;
+    float    m_MaxPDFScale;
 };

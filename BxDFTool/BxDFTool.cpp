@@ -16,9 +16,9 @@ void PrintEnergyBuffer( float* buffer, uint32_t column, uint32_t row, uint32_t s
             for ( uint32_t iColumn = 0; iColumn < column; ++iColumn )
             {
                 float value = *pBuffer;
-                //value = std::roundf( std::min( 1.0f, value ) * 65535.0f );
-                printf( "%9.7ff, ", *pBuffer );
-                //printf( "%5d, ", (uint16_t)value );
+                value = std::roundf( std::min( 1.0f, value ) * 65535.0f );
+                //printf( "%9.7ff, ", *pBuffer );
+                printf( "%5d, ", (uint16_t)value );
                 pBuffer++;
             }
             printf( "\n" );
@@ -100,10 +100,13 @@ int main()
         uint32_t threadCount = alphaCount;
 
         float* outputBuffer = new float[ cosThetaCount * alphaCount ];
+        float* PDFScaleOutputBuffer = new float[ alphaCount ];
         SComputeInvCDF invCDF;
         invCDF.m_CosThetaCount = cosThetaCount;
         invCDF.m_EnergyBuffer  = energyBuffer;
+        invCDF.m_MaxPDFScale   = 2.0f;
         invCDF.m_OutputBuffer  = outputBuffer;
+        invCDF.m_PDFScaleOutputBuffer = PDFScaleOutputBuffer;
 
         using std::placeholders::_1;
         using std::placeholders::_2;
@@ -112,8 +115,10 @@ int main()
         MP::Dispatch( threadSize, threadCount, laneFunction );
 
         PrintEnergyBuffer( outputBuffer, cosThetaCount, alphaCount, 1 );
+        PrintEnergyBuffer( PDFScaleOutputBuffer, alphaCount, 1, 1 );
 
         delete[] outputBuffer;
+        delete[] PDFScaleOutputBuffer;
     }
 
     delete[] energyBuffer;
