@@ -1,3 +1,4 @@
+#include "PCH.h"
 #include "Utility.h"
 
 float NumericalIntegration::CompositeTrapezoidal( float a, float b, float* samples, uint32_t sampleCount )
