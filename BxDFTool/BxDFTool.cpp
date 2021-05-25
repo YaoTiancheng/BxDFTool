@@ -29,16 +29,17 @@ void PrintEnergyBuffer( float* buffer, uint32_t column, uint32_t row, uint32_t s
 
 int main()
 {
-    uint32_t alphaCount = 32;
+    uint32_t alphaCount = 16;
     uint32_t cosThetaCount = 32;
-    uint32_t etaCount = 1;
+    uint32_t etaCount = 16;
     uint32_t sampleCount = 960000;
     bool     outputEnergyBuffer = true;
-    bool     outputAverageEnergyBuffer = true;
-    bool     outputInverseCDF = true;
-    float    etaI = 0.0f;
+    bool     outputAverageEnergyBuffer = false;
+    bool     outputInverseCDF = false;
+    float    etaI = 1.0f;
     float    etaTBegin = 1.0f;
     float    etaTEnd = 3.0f;
+    bool     invert = false;
 
     float* energyBuffer = nullptr;
     {
@@ -54,6 +55,7 @@ int main()
         integral.m_EtaInterval      = etaCount > 1 ? ( etaTEnd - integral.m_EtaBegin ) / ( etaCount - 1 ) : 0.0f;
         integral.m_EtaI             = etaI;
         integral.m_AlphaCount       = alphaCount;
+        integral.m_Invert           = invert;
         integral.m_OutputBuffer     = energyBuffer;
         integral.m_Rngs             = rngs;
         integral.m_SampleCount      = sampleCount;
@@ -61,7 +63,7 @@ int main()
         using std::placeholders::_1;
         using std::placeholders::_2;
         using std::placeholders::_3;
-        MP::LaneFunctionType laneFunction = std::bind( &SEnergyIntegral::Execute, &integral, _1, _2, _3 );
+        MP::LaneFunctionType laneFunction = std::bind( &SEnergyIntegral::Execute_CookTorranceMicrofacetBSDF, &integral, _1, _2, _3 );
         MP::Dispatch( threadSize, threadCount, laneFunction );
 
         delete[] rngs;

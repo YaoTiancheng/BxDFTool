@@ -4,7 +4,13 @@ struct SRandomNumberGenerator;
 
 struct SEnergyIntegral
 {
+private:
+    template <typename BxDF>
     void Execute( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
+
+public:
+    void Execute_CookTorranceMicrofacetBRDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
+    void Execute_CookTorranceMicrofacetBSDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
 
     SRandomNumberGenerator* m_Rngs;
     float    m_CosThetaInterval;
@@ -14,6 +20,7 @@ struct SEnergyIntegral
     float    m_EtaI;
     uint32_t m_SampleCount;
     uint32_t m_AlphaCount;
+    bool     m_Invert;
     float*   m_OutputBuffer;
 };
 

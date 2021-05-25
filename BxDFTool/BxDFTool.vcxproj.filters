@@ -35,9 +35,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CookTorranceBRDF.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="LightingContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -59,5 +56,6 @@
     <ClInclude Include="RandomNumberGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CookTorranceBSDF.h" />
   </ItemGroup>
 </Project>

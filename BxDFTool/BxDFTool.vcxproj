@@ -164,7 +164,6 @@
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CookTorranceBRDF.h" />
     <ClInclude Include="LightingContext.h" />
     <ClInclude Include="EnergyIntegral.h" />
     <ClInclude Include="MultiProcessing\MPDispatcher.h" />
@@ -172,6 +171,11 @@
     <ClInclude Include="RandomNumberGenerator.h" />
     <ClInclude Include="PCH.h" />
     <ClInclude Include="Utility.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CookTorranceBSDF.h">
+      <FileType>Document</FileType>
+    </ClInclude>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
