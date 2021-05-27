@@ -28,7 +28,7 @@ static float EstimateEnergy( float cosTheta, float alpha, float etaI, float etaT
         assert( value >= 0.0f && pdf >= 0.0f );
 
         if ( pdf != 0.0f )
-            ESum += value * wi.z / pdf;
+            ESum += value * abs( wi.z ) / pdf;
     }
     return ESum / sampleCount;
 }

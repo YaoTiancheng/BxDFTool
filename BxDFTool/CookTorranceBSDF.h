@@ -6,6 +6,8 @@
 
 inline float EvaluateDielectricFresnel( float cosThetaI, float etaI, float etaT )
 {
+    cosThetaI = std::min( 1.0f, std::max( -1.0f, cosThetaI ) );
+
     if ( cosThetaI < 0.0f )
     {
         float etaTemp = etaI;
@@ -224,17 +226,23 @@ inline float EvaluateCookTorranceMircofacetBTDF( const DirectX::XMFLOAT3& wi, co
         xmM = XMVector3Normalize( xmM );
         XMStoreFloat3( &m, xmM );
          
-        if ( m.z < 0.0f ) m = XMFLOAT3( -m.x, -m.y, -m.z ); // Ensure same facing as the wo otherwise it will be rejected in G
+        if ( m.z < 0.0f )
+        {
+            m = XMFLOAT3( -m.x, -m.y, -m.z ); // Ensure same facing as the wo otherwise it will be rejected in G
+            xmM = XMVectorNegate( xmM );
+        }
         float WIdotM, WOdotM;
         XMStoreFloat( &WIdotM, XMVector3Dot( XMLoadFloat3( &wi ), xmM ) );
         XMStoreFloat( &WOdotM, XMVector3Dot( XMLoadFloat3( &wo ), xmM ) );
         float sqrtDenom = etaI * WOdotM + etaT * WIdotM;
 
-        return ( 1.0f - EvaluateDielectricFresnel( WIdotM, etaI, etaT ) )
+        float value = ( 1.0f - EvaluateDielectricFresnel( WIdotM, etaI, etaT ) )
             * abs( EvaluateGGXMicrofacetDistribution( m, alpha ) * EvaluateGGXGeometricShadowing( wi, wo, m, alpha )
             * abs( WIdotM ) * abs( WOdotM ) 
             * etaI * etaI // etaT * etaT * ( ( etaI * etaI ) / ( etaT * etaT ) )
             / ( WOdotN * WIdotN * sqrtDenom * sqrtDenom ) );
+        assert( value >= 0.0f );
+        return value;
     }
     else
     {
@@ -252,7 +260,11 @@ inline float EvaluateCookTorranceMicrofacetBTDFPdf( const DirectX::XMFLOAT3& wi,
         xmM = XMVector3Normalize( xmM );
         XMStoreFloat3( &m, xmM );
 
-        if ( m.z < 0.0f ) m = XMFLOAT3( -m.x, -m.y, -m.z ); // Ensure same facing as the wo otherwise it will be rejected in G
+        if ( m.z < 0.0f )
+        {
+            m = XMFLOAT3( -m.x, -m.y, -m.z ); // Ensure same facing as the wo otherwise it will be rejected in G
+            xmM = XMVectorNegate( xmM );
+        }
         float WIdotM, WOdotM;
         XMStoreFloat( &WIdotM, XMVector3Dot( XMLoadFloat3( &wi ), xmM ) );
         XMStoreFloat( &WOdotM, XMVector3Dot( XMLoadFloat3( &wo ), xmM ) );
@@ -281,19 +293,37 @@ inline void SampleCookTorranceMicrofacetBTDF( const DirectX::XMFLOAT3& wo, const
 
         DirectX::XMFLOAT3 m;
         SampleGGXMicrofacetDistribution( sample, alpha, &m );
-        DirectX::XMVECTOR xmWi = XMVector3Refract( XMVectorNegate( XMLoadFloat3( &wo ) ), XMLoadFloat3( &m ), etaI / etaT );
+
+        DirectX::XMVECTOR xmM = XMLoadFloat3( &m );
+        DirectX::XMVECTOR xmWo = XMLoadFloat3( &wo );
+        DirectX::XMVECTOR xmWi = XMVector3Refract( XMVectorNegate( xmWo ), xmM, etaI / etaT );
         XMStoreFloat3( wi, xmWi );
         if ( wi->x == 0.0f && wi->y == 0.0f && wi->z == 0.0f )
             return;
 
         lightingContext->H = m;
-        XMStoreFloat( &lightingContext->WOdotH, XMVector3Dot( XMLoadFloat3( &wo ), XMLoadFloat3( &m ) ) );
+        XMStoreFloat( &lightingContext->WOdotH, XMVector3Dot( xmWo, xmM ) );
 
         float WIdotN = wi->z;
         lightingContext->WIdotN = WIdotN;
 
-        *value = EvaluateCookTorranceMircofacetBTDF( *wi, wo, alpha, etaI, etaT, *lightingContext );
-        *pdf   = EvaluateCookTorranceMicrofacetBTDFPdf( *wi, wo, alpha, etaI, etaT, *lightingContext );
+        if ( WIdotN == 0.0f )
+            return;
+
+        float WIdotM;
+        XMStoreFloat( &WIdotM, XMVector3Dot( xmWi, xmM ) );
+        float WOdotM = lightingContext->WOdotH;
+        float sqrtDenom = etaI * WOdotM + etaT * WIdotM;
+
+        *value = ( 1.0f - EvaluateDielectricFresnel( WIdotM, etaI, etaT ) )
+            * abs( EvaluateGGXMicrofacetDistribution( m, alpha ) * EvaluateGGXGeometricShadowing( *wi, wo, m, alpha )
+            * abs( WIdotM ) * abs( WOdotM )
+            * etaI * etaI // etaT * etaT * ( ( etaI * etaI ) / ( etaT * etaT ) )
+            / ( WOdotN * WIdotN * sqrtDenom * sqrtDenom ) );
+        assert( *value >= 0.0f );
+
+        float dwh_dwi = abs( ( etaT * etaT * WIdotM ) / ( sqrtDenom * sqrtDenom ) );
+        *pdf = EvaluateGGXMicrofacetDistributionPdf( m, alpha ) * dwh_dwi;
 
         *isDeltaBtdf = false;
     }
