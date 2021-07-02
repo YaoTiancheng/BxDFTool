@@ -57,5 +57,14 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CookTorranceBSDF.h" />
+    <ClInclude Include="Math\Vector2f.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Vector3f.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\MathHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

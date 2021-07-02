@@ -166,6 +166,9 @@
   <ItemGroup>
     <ClInclude Include="LightingContext.h" />
     <ClInclude Include="EnergyIntegral.h" />
+    <ClInclude Include="Math\MathHelpers.h" />
+    <ClInclude Include="Math\Vector2f.h" />
+    <ClInclude Include="Math\Vector3f.h" />
     <ClInclude Include="MultiProcessing\MPDispatcher.h" />
     <ClInclude Include="MultiProcessing\MPWorkerThread.h" />
     <ClInclude Include="RandomNumberGenerator.h" />

@@ -9,17 +9,17 @@ using namespace DirectX;
 template <typename BxDF>
 static float EstimateEnergy( float cosTheta, float alpha, float etaI, float etaT, uint32_t sampleCount, SRandomNumberGenerator* rng )
 {
-    XMFLOAT3 wo( sqrtf( 1.0f - cosTheta * cosTheta ), 0.0f, cosTheta );
+    float3 wo( sqrtf( 1.0f - cosTheta * cosTheta ), 0.0f, cosTheta );
     double ESum = 0.0f;
     for ( uint32_t iSample = 0; iSample < sampleCount; ++iSample )
     {
         float selectionSample = BxDF::s_NeedSelectionSample ? rng->Next() : 0.0f;
-        XMFLOAT2 bxdfSample = XMFLOAT2( rng->Next(), rng->Next() );
+        float2 bxdfSample = float2( rng->Next(), rng->Next() );
 
         SLightingContext lightingContext;
         lightingContext.Init( wo );
 
-        XMFLOAT3 wi;
+        float3 wi;
         float value;
         float pdf;
         bool isDeltaBxdf;

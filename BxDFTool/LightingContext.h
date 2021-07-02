@@ -1,10 +1,10 @@
 #pragma once
 
-#include "DirectXMath.h"
+#include "Math/Vector3f.h"
 
 struct SLightingContext
 {
-    void Init( const DirectX::XMFLOAT3& wo )
+    void Init( const float3& wo )
     {
         memset( this, 0, sizeof( SLightingContext ) );
         WOdotN = wo.z;
@@ -12,6 +12,6 @@ struct SLightingContext
 
     float WOdotN;
     float WIdotN;
-    DirectX::XMFLOAT3 H;
+    float3 H;
     float WOdotH;
 };
