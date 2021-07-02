@@ -10,7 +10,7 @@ template <typename BxDF>
 static float EstimateEnergy( float cosTheta, float alpha, float etaI, float etaT, uint32_t sampleCount, SRandomNumberGenerator* rng )
 {
     XMFLOAT3 wo( sqrtf( 1.0f - cosTheta * cosTheta ), 0.0f, cosTheta );
-    float ESum = 0.0f;
+    double ESum = 0.0f;
     for ( uint32_t iSample = 0; iSample < sampleCount; ++iSample )
     {
         float selectionSample = BxDF::s_NeedSelectionSample ? rng->Next() : 0.0f;
@@ -28,9 +28,9 @@ static float EstimateEnergy( float cosTheta, float alpha, float etaI, float etaT
         assert( value >= 0.0f && pdf >= 0.0f );
 
         if ( pdf != 0.0f )
-            ESum += value * abs( wi.z ) / pdf;
+            ESum += double( value * abs( wi.z ) / pdf );
     }
-    return ESum / sampleCount;
+    return float( ESum / sampleCount );
 }
 
 template <typename BxDF>
@@ -47,6 +47,11 @@ void SEnergyIntegral::Execute( uint32_t threadIndex, uint32_t localLaneIndex, ui
 void SEnergyIntegral::Execute_CookTorranceMicrofacetBRDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex )
 {
     Execute<CookTorranceMicrofacetBRDF>( threadIndex, localLaneIndex, globalLaneIndex );
+}
+
+void SEnergyIntegral::Execute_CookTorranceMicrofacetBTDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex )
+{
+    Execute<CookTorranceMicrofacetBTDF>( threadIndex, localLaneIndex, globalLaneIndex );
 }
 
 void SEnergyIntegral::Execute_CookTorranceMicrofacetBSDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex )

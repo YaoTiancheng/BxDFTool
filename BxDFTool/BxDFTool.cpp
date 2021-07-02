@@ -35,11 +35,11 @@ int main()
     uint32_t sampleCount = 960000;
     bool     outputEnergyBuffer = true;
     bool     outputAverageEnergyBuffer = false;
-    bool     outputInverseCDF = false;
+    bool     outputInverseCDF = true;
     float    etaI = 1.0f;
     float    etaTBegin = 1.0f;
     float    etaTEnd = 3.0f;
-    bool     invert = false;
+    bool     invert = true;
 
     float* energyBuffer = nullptr;
     {
@@ -77,7 +77,7 @@ int main()
     if ( outputAverageEnergyBuffer )
     {
         uint32_t threadSize = 1;
-        uint32_t threadCount = alphaCount;
+        uint32_t threadCount = alphaCount * etaCount;
 
         float* outputBuffer = new float[ threadSize * threadCount ];
         SAverageEnergyIntegral integral;
@@ -91,7 +91,7 @@ int main()
         MP::LaneFunctionType laneFunction = std::bind( &SAverageEnergyIntegral::Execute, &integral, _1, _2, _3 );
         MP::Dispatch( threadSize, threadCount, laneFunction );
 
-        PrintEnergyBuffer( outputBuffer, alphaCount, 1, 1 );
+        PrintEnergyBuffer( outputBuffer, alphaCount, etaCount, 1 );
 
         delete[] outputBuffer;
     }
@@ -99,10 +99,10 @@ int main()
     if ( outputInverseCDF )
     {
         uint32_t threadSize = 1;
-        uint32_t threadCount = alphaCount;
+        uint32_t threadCount = alphaCount * etaCount;
 
-        float* outputBuffer = new float[ cosThetaCount * alphaCount ];
-        float* PDFScaleOutputBuffer = new float[ alphaCount ];
+        float* outputBuffer = new float[ cosThetaCount * alphaCount * etaCount ];
+        float* PDFScaleOutputBuffer = new float[ alphaCount * etaCount ];
         SComputeInvCDF invCDF;
         invCDF.m_CosThetaCount = cosThetaCount;
         invCDF.m_EnergyBuffer  = energyBuffer;
@@ -116,8 +116,8 @@ int main()
         MP::LaneFunctionType laneFunction = std::bind( &SComputeInvCDF::Execute, &invCDF, _1, _2, _3 );
         MP::Dispatch( threadSize, threadCount, laneFunction );
 
-        PrintEnergyBuffer( outputBuffer, cosThetaCount, alphaCount, 1 );
-        PrintEnergyBuffer( PDFScaleOutputBuffer, alphaCount, 1, 1 );
+        PrintEnergyBuffer( outputBuffer, cosThetaCount, alphaCount, etaCount );
+        PrintEnergyBuffer( PDFScaleOutputBuffer, alphaCount, etaCount, 1 );
 
         delete[] outputBuffer;
         delete[] PDFScaleOutputBuffer;

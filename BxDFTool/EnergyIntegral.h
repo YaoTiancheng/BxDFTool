@@ -10,6 +10,7 @@ private:
 
 public:
     void Execute_CookTorranceMicrofacetBRDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
+    void Execute_CookTorranceMicrofacetBTDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
     void Execute_CookTorranceMicrofacetBSDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
 
     SRandomNumberGenerator* m_Rngs;

@@ -102,8 +102,8 @@ inline float EvaluateSpecularBRDFPdf( const DirectX::XMFLOAT3& wi, const DirectX
 inline void SampleSpecularBRDF( const DirectX::XMFLOAT3& wo, float etaI, float etaT, DirectX::XMFLOAT3* wi, float* value, float* pdf, SLightingContext* lightingContext )
 {
     *wi    = DirectX::XMFLOAT3( -wo.x, -wo.y, wo.z );
-    *value = lightingContext->WOdotN > 0.0f ? EvaluateDielectricFresnel( lightingContext->WOdotN, etaI, etaT ) / wi->z : 0.0f;
-    *pdf   = lightingContext->WOdotN > 0.0f ? 1.0f : 0.0f;
+    *value = EvaluateDielectricFresnel( lightingContext->WOdotN, etaI, etaT ) / wi->z;
+    *pdf   = 1.0f;
 
     lightingContext->WIdotN = wi->z;
     lightingContext->H = DirectX::XMFLOAT3( 0.0f, 0.0f, 1.0f );
@@ -132,11 +132,11 @@ inline void SampleSpecularBTDF( const DirectX::XMFLOAT3& wo, float etaI, float e
 
     lightingContext->WIdotN = wi->z;
 
-    *value = lightingContext->WOdotN > 0.0f ? ( 1.0f - EvaluateDielectricFresnel( lightingContext->WIdotN, etaI, etaT ) ) : 0.0f;
-    *value *= ( etaI * etaI ) / ( etaT * etaT );
+    *value = 1.0f - EvaluateDielectricFresnel( lightingContext->WIdotN, etaI, etaT );
+    //*value *= ( etaI * etaI ) / ( etaT * etaT );
     *value /= abs( lightingContext->WIdotN );
 
-    *pdf = lightingContext->WOdotN > 0.0f ? 1.0f : 0.0f;
+    *pdf = 1.0f;
 }
 
 #define ALPHA_THRESHOLD 0.000196f
@@ -318,7 +318,8 @@ inline void SampleCookTorranceMicrofacetBTDF( const DirectX::XMFLOAT3& wo, const
         *value = ( 1.0f - EvaluateDielectricFresnel( WIdotM, etaI, etaT ) )
             * abs( EvaluateGGXMicrofacetDistribution( m, alpha ) * EvaluateGGXGeometricShadowing( *wi, wo, m, alpha )
             * abs( WIdotM ) * abs( WOdotM )
-            * etaI * etaI // etaT * etaT * ( ( etaI * etaI ) / ( etaT * etaT ) )
+            //* etaI * etaI // etaT * etaT * ( ( etaI * etaI ) / ( etaT * etaT ) )
+            * etaT * etaT
             / ( WOdotN * WIdotN * sqrtDenom * sqrtDenom ) );
         assert( *value >= 0.0f );
 
@@ -367,6 +368,18 @@ public:
     static void Sample( const DirectX::XMFLOAT3& wo, float selectionSample, const DirectX::XMFLOAT2& bxdfSample, float alpha, float etaI, float etaT, DirectX::XMFLOAT3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
     {
         SampleCookTorranceMicrofacetBRDF( wo, bxdfSample, alpha, etaI, etaT, wi, value, pdf, isDeltaBxdf, lightingContext );
+    }
+
+    static const bool s_NeedSelectionSample = false;
+};
+
+
+class CookTorranceMicrofacetBTDF
+{
+public:
+    static void Sample( const DirectX::XMFLOAT3& wo, float selectionSample, const DirectX::XMFLOAT2& bxdfSample, float alpha, float etaI, float etaT, DirectX::XMFLOAT3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
+    {
+        SampleCookTorranceMicrofacetBTDF( wo, bxdfSample, alpha, etaI, etaT, wi, value, pdf, isDeltaBxdf, lightingContext );
     }
 
     static const bool s_NeedSelectionSample = false;

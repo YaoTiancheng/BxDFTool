@@ -5,7 +5,7 @@
 struct SRandomNumberGenerator
 {
     SRandomNumberGenerator()
-        : m_Distribution( 0.0f, 1.0f )
+        : m_Distribution( 0.0f, nextafterf( 1.0f, 0.0f ) )
     {
     }
 
