@@ -3,9 +3,20 @@
 struct Vector3f
 {
     Vector3f() = default;
+    Vector3f( float s ) : x( s ), y( s ), z( s ) {}
     Vector3f( float x, float y, float z ) : x( x ), y( y ), z( z ) {}
     Vector3f( const Vector3f& other ) : x( other.x ), y( other.y ), z( other.z ) {}
     Vector3f( const Vector3f&& other ) noexcept : x( other.x ), y( other.y ), z( other.z ) {}
+
+    float GetMagnitude() const
+    {
+        return sqrtf( x * x + y * y + z * z );
+    }
+
+    Vector3f GetNormalized() const
+    {
+        return ( *this ) / GetMagnitude();
+    }
 
     Vector3f operator+( const Vector3f& other ) const
     {
@@ -77,4 +88,9 @@ struct Vector3f
 inline Vector3f operator-( const Vector3f& v )
 {
     return Vector3f( -v.x, -v.y, -v.z );
+}
+
+inline Vector3f operator*( float s, const Vector3f& v )
+{
+    return v * s;
 }
