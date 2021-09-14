@@ -4,7 +4,7 @@
 #include "Math/MathHelpers.h"
 #include "LightingContext.h"
 
-inline float EvaluateDielectricFresnel( float cosThetaI, float etaI, float etaT )
+inline float FresnelDielectric( float cosThetaI, float etaI, float etaT )
 {
     cosThetaI = std::min( 1.0f, std::max( -1.0f, cosThetaI ) );
 
@@ -28,6 +28,40 @@ inline float EvaluateDielectricFresnel( float cosThetaI, float etaI, float etaT 
     float Rperp = ( ( etaI * cosThetaI ) - ( etaT * cosThetaT ) ) /
         ( ( etaI * cosThetaI ) + ( etaT * cosThetaT ) );
     return ( Rparl * Rparl + Rperp * Rperp ) * 0.5f;
+}
+
+inline float FresnelConductor( float cosThetaI, float etaI, float etaT, float k )
+{
+    cosThetaI = MathHelpers::Clamp( cosThetaI, -1, 1 );
+    float eta = etaT / etaI;
+    float etak = k / etaI;
+
+    float cosThetaI2 = cosThetaI * cosThetaI;
+    float sinThetaI2 = 1.0f - cosThetaI2;
+    float eta2 = eta * eta;
+    float etak2 = etak * etak;
+
+    float t0 = eta2 - etak2 - sinThetaI2;
+    float a2plusb2 = sqrtf( t0 * t0 + 4 * eta2 * etak2 );
+    float t1 = a2plusb2 + cosThetaI2;
+    float a = sqrtf( 0.5f * ( a2plusb2 + t0 ) );
+    float t2 = 2.0f * cosThetaI * a;
+    float Rs = ( t1 - t2 ) / ( t1 + t2 );
+
+    float t3 = cosThetaI2 * a2plusb2 + sinThetaI2 * sinThetaI2;
+    float t4 = t2 * sinThetaI2;
+    float Rp = Rs * ( t3 - t4 ) / ( t3 + t4 );
+
+    float value = 0.5 * ( Rp + Rs );
+    return std::max( 0.f, value );
+}
+
+inline float3 UniformSampleHemisphere( const float2& sample, float& pdf )
+{
+    pdf = float( 1.0 / M_PI_2 );
+    float r = sqrtf( 1 - sample.x );
+    float theta = float( M_PI_2 * sample.y );
+    return float3( cos( theta ) * r, sin( theta ) * r, sample.x );
 }
 
 inline float3 GGXSampleHemisphere( const float3& wo, const float2& sample, float alpha )
@@ -136,7 +170,7 @@ inline void SampleCookTorranceMicrofacetBRDF( const float3& wo, const float2& sa
         if ( WIdotN <= 0.0f || WOdotM <= 0.0f )
             return;
 
-        *value = EvaluateGGXMicrofacetDistribution( m, alpha ) * EvaluateGGXGeometricShadowing( *wi, wo, m, alpha ) * EvaluateDielectricFresnel( std::min( 1.0f, WOdotM ), etaI, etaT ) / ( 4.0f * WIdotN * WOdotN );
+        *value = EvaluateGGXMicrofacetDistribution( m, alpha ) * EvaluateGGXGeometricShadowing( *wi, wo, m, alpha ) * FresnelDielectric( std::min( 1.0f, WOdotM ), etaI, etaT ) / ( 4.0f * WIdotN * WOdotN );
         *pdf = EvaluateGGXMicrofacetDistributionPdf( m, alpha ) / ( 4.0f * WOdotM );
     }
     else
@@ -150,7 +184,7 @@ inline void SampleCookTorranceMicrofacetBRDF( const float3& wo, const float2& sa
         if ( wi->z == 0.0f )
             return;
 
-        *value = EvaluateDielectricFresnel( lightingContext->WOdotN, etaI, etaT ) / wi->z;
+        *value = FresnelDielectric( lightingContext->WOdotN, etaI, etaT ) / wi->z;
         *pdf = 1.0f;
         *isDeltaBrdf = true;
     }
@@ -188,7 +222,7 @@ inline void SampleCookTorranceMicrofacetBTDF( const float3& wo, const float2& sa
         float WOdotM = lightingContext->WOdotH;
         float sqrtDenom = etaI * WOdotM + etaT * WIdotM;
 
-        *value = ( 1.0f - EvaluateDielectricFresnel( WIdotM, etaI, etaT ) )
+        *value = ( 1.0f - FresnelDielectric( WIdotM, etaI, etaT ) )
             * abs( EvaluateGGXMicrofacetDistribution( m, alpha ) * EvaluateGGXGeometricShadowing( *wi, wo, m, alpha )
             * abs( WIdotM ) * abs( WOdotM )
             //* etaI * etaI // etaT * etaT * ( ( etaI * etaI ) / ( etaT * etaT ) )
@@ -207,7 +241,7 @@ inline void SampleCookTorranceMicrofacetBTDF( const float3& wo, const float2& sa
         if ( wi->z == 0.0f )
             return;
 
-        *value = 1.0f - EvaluateDielectricFresnel( lightingContext->WIdotN, etaI, etaT );
+        *value = 1.0f - FresnelDielectric( lightingContext->WIdotN, etaI, etaT );
         //*value *= ( etaI * etaI ) / ( etaT * etaT );
         *value /= abs( lightingContext->WIdotN );
         *pdf = 1.0f;
@@ -261,7 +295,7 @@ inline void SampleCookTorranceMicrofacetBSDF( const float3& wo, float selectionS
     if ( WOdotM <= 0.0f )
         return;
 
-    float F = EvaluateDielectricFresnel( WOdotM, etaI, etaT );
+    float F = FresnelDielectric( WOdotM, etaI, etaT );
     float Wr = F;
 
     float WIdotM;
@@ -286,7 +320,7 @@ inline void SampleCookTorranceMicrofacetBSDF( const float3& wo, float selectionS
             return;
 
         WIdotM = Vector3f::Dot( wi, m );
-        F = EvaluateDielectricFresnel( WIdotM, etaI, etaT );
+        F = FresnelDielectric( WIdotM, etaI, etaT );
         pdf *= 1.0f - Wr;
     }
 
@@ -326,11 +360,17 @@ inline void SampleCookTorranceMicrofacetBSDF( const float3& wo, float selectionS
     }
 }
 
+inline void SampleFresnel( const float2& bxdfSample, float etaI, float etaT, float k, float3& wi, float& value, float& pdf )
+{
+    wi = UniformSampleHemisphere( bxdfSample, pdf );
+    value = FresnelConductor( wi.z, etaI, etaT, k ) * wi.z;
+}
+
 
 class CookTorranceMicrofacetBRDF
 {
 public:
-    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
+    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float k, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
     {
         SampleCookTorranceMicrofacetBRDF( wo, bxdfSample, alpha, etaI, etaT, wi, value, pdf, isDeltaBxdf, lightingContext );
     }
@@ -342,7 +382,7 @@ public:
 class CookTorranceMicrofacetBTDF
 {
 public:
-    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
+    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float k, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
     {
         SampleCookTorranceMicrofacetBTDF( wo, bxdfSample, alpha, etaI, etaT, wi, value, pdf, isDeltaBxdf, lightingContext );
     }
@@ -354,10 +394,21 @@ public:
 class CookTorranceMicrofacetBSDF
 {
 public:
-    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
+    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float k, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
     {
         SampleCookTorranceMicrofacetBSDF( wo, selectionSample, bxdfSample, alpha, etaI, etaT, *wi, *value, *pdf, *isDeltaBxdf, *lightingContext );
     }
 
     static const bool s_NeedSelectionSample = true;
+};
+
+class ConductorFresnel
+{
+public:
+    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float k, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
+    {
+        SampleFresnel( bxdfSample, etaI, etaT, k, *wi, *value, *pdf );
+    }
+
+    static const bool s_NeedSelectionSample = false;
 };

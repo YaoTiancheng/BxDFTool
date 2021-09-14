@@ -7,7 +7,7 @@ using namespace DirectX;
 #include "CookTorranceBSDF.h"
 
 template <typename BxDF>
-static float EstimateEnergy( float cosTheta, float alpha, float etaI, float etaT, uint32_t sampleCount, SRandomNumberGenerator* rng )
+static float EstimateEnergy( float cosTheta, float alpha, float etaI, float etaT, float k, uint32_t sampleCount, SRandomNumberGenerator* rng )
 {
     float3 wo( sqrtf( 1.0f - cosTheta * cosTheta ), 0.0f, cosTheta );
     double ESum = 0.0f;
@@ -23,7 +23,7 @@ static float EstimateEnergy( float cosTheta, float alpha, float etaI, float etaT
         float value;
         float pdf;
         bool isDeltaBxdf;
-        BxDF::Sample( wo, selectionSample, bxdfSample, alpha, etaI, etaT, &wi, &value, &pdf, &isDeltaBxdf, &lightingContext );
+        BxDF::Sample( wo, selectionSample, bxdfSample, alpha, etaI, etaT, k, &wi, &value, &pdf, &isDeltaBxdf, &lightingContext );
 
         assert( value >= 0.0f && pdf >= 0.0f );
 
@@ -41,7 +41,16 @@ void SEnergyIntegral::Execute( uint32_t threadIndex, uint32_t localLaneIndex, ui
     float etaT     = m_EtaBegin + ( threadIndex / m_AlphaCount ) * m_EtaInterval;
     float etaI     = m_EtaI;
     if ( m_Invert ) std::swap( etaI, etaT );
-    m_OutputBuffer[ globalLaneIndex ] = EstimateEnergy<BxDF>( cosTheta, alpha, etaI, etaT, m_SampleCount, &m_Rngs[ threadIndex ] );
+    m_OutputBuffer[ globalLaneIndex ] = EstimateEnergy<BxDF>( cosTheta, alpha, etaI, etaT, 0.f, m_SampleCount, &m_Rngs[ threadIndex ] );
+}
+
+void SEnergyIntegral::Execute_FresnelConductor( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex )
+{
+    float etaT = m_EtaBegin + localLaneIndex * m_EtaInterval;
+    float etaI = m_EtaI;
+    float k = threadIndex * m_kInterval;
+    if ( m_Invert ) std::swap( etaI, etaT );
+    m_OutputBuffer[ globalLaneIndex ] = EstimateEnergy<ConductorFresnel>( 0.f, 0.f, etaI, etaT, k, m_SampleCount, &m_Rngs[ threadIndex ] );
 }
 
 void SEnergyIntegral::Execute_CookTorranceMicrofacetBRDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex )

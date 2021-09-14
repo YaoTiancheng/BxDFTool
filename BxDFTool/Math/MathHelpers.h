@@ -27,6 +27,11 @@ namespace MathHelpers
     {
         return VectorToVec3f( DirectX::XMVector3Refract( Vec3fToVector( i ), Vec3fToVector( n ), refractionIndex ) );
     }
+
+    inline float Clamp( float v, float min, float max )
+    {
+        return std::max( std::min( v, max ), min );
+    }
 }
 
 using float2 = Vector2f;

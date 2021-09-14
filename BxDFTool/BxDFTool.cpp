@@ -16,9 +16,9 @@ void PrintEnergyBuffer( float* buffer, uint32_t column, uint32_t row, uint32_t s
             for ( uint32_t iColumn = 0; iColumn < column; ++iColumn )
             {
                 float value = *pBuffer;
-                value = std::roundf( std::min( 1.0f, value ) * 65535.0f );
-                //printf( "%9.7ff, ", *pBuffer );
-                printf( "%5d, ", (uint16_t)value );
+                //value = std::roundf( std::min( 1.0f, value ) * 65535.0f );
+                printf( "%9.7ff, ", *pBuffer );
+                //printf( "%5d, ", (uint16_t)value );
                 pBuffer++;
             }
             printf( "\n" );
@@ -32,19 +32,35 @@ int main()
     uint32_t alphaCount = 16;
     uint32_t cosThetaCount = 32;
     uint32_t etaCount = 16;
+    uint32_t kCount = 16;
     uint32_t sampleCount = 960000;
     bool     outputEnergyBuffer = true;
     bool     outputAverageEnergyBuffer = false;
-    bool     outputInverseCDF = true;
+    bool     outputInverseCDF = false;
     float    etaI = 1.0f;
     float    etaTBegin = 1.0f;
     float    etaTEnd = 3.0f;
-    bool     invert = true;
+    float    kEnd = 4.0f;
+    bool     invert = false;
+    bool     integrateFavg = true;
 
     float* energyBuffer = nullptr;
     {
-        uint32_t threadSize = cosThetaCount;
-        uint32_t threadCount = alphaCount * etaCount;
+        uint32_t threadSize = 0;
+        uint32_t threadCount = 0;
+        uint32_t sliceCount = 0;
+        if ( !integrateFavg )
+        {
+            threadSize  = cosThetaCount;
+            threadCount = alphaCount * etaCount;
+            sliceCount  = etaCount;
+        }
+        else
+        {
+            threadSize  = etaCount;
+            threadCount = kCount;
+            sliceCount  = 1;
+        }
         energyBuffer = new float[ threadSize * threadCount ];
         SRandomNumberGenerator* rngs = new SRandomNumberGenerator[ threadCount ];
 
@@ -54,6 +70,7 @@ int main()
         integral.m_EtaBegin         = etaTBegin;
         integral.m_EtaInterval      = etaCount > 1 ? ( etaTEnd - integral.m_EtaBegin ) / ( etaCount - 1 ) : 0.0f;
         integral.m_EtaI             = etaI;
+        integral.m_kInterval        = kEnd / ( kCount - 1 );
         integral.m_AlphaCount       = alphaCount;
         integral.m_Invert           = invert;
         integral.m_OutputBuffer     = energyBuffer;
@@ -63,14 +80,14 @@ int main()
         using std::placeholders::_1;
         using std::placeholders::_2;
         using std::placeholders::_3;
-        MP::LaneFunctionType laneFunction = std::bind( &SEnergyIntegral::Execute_CookTorranceMicrofacetBSDF, &integral, _1, _2, _3 );
+        MP::LaneFunctionType laneFunction = std::bind( &SEnergyIntegral::Execute_FresnelConductor, &integral, _1, _2, _3 );
         MP::Dispatch( threadSize, threadCount, laneFunction );
 
         delete[] rngs;
 
         if ( outputEnergyBuffer )
         {
-            PrintEnergyBuffer( energyBuffer, cosThetaCount, alphaCount, etaCount );
+            PrintEnergyBuffer( energyBuffer, threadSize, alphaCount, sliceCount );
         }
     }
 
