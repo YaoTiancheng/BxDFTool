@@ -34,113 +34,125 @@ int main()
     uint32_t etaCount = 16;
     uint32_t kCount = 16;
     uint32_t sampleCount = 960000;
-    bool     outputEnergyBuffer = true;
+    bool     outputEnergyBuffer = false;
     bool     outputAverageEnergyBuffer = false;
     bool     outputInverseCDF = false;
+    bool     outputAverageFresnel = true;
     float    etaI = 1.0f;
     float    etaTBegin = 1.0f;
     float    etaTEnd = 3.0f;
     float    kEnd = 4.0f;
     bool     invert = false;
-    bool     integrateFavg = true;
 
-    float* energyBuffer = nullptr;
-    {
-        uint32_t threadSize = 0;
-        uint32_t threadCount = 0;
-        uint32_t sliceCount = 0;
-        if ( !integrateFavg )
+    if ( outputEnergyBuffer )
+    { 
+        float* energyBuffer = nullptr;
         {
-            threadSize  = cosThetaCount;
-            threadCount = alphaCount * etaCount;
-            sliceCount  = etaCount;
+            uint32_t threadSize = cosThetaCount;
+            uint32_t threadCount = alphaCount * etaCount;
+            energyBuffer = new float[ threadSize * threadCount ];
+            SRandomNumberGenerator* rngs = new SRandomNumberGenerator[ threadCount ];
+
+            SEnergyIntegral integral;
+            integral.m_AlphaInterval    = 1.0f / ( alphaCount - 1 );
+            integral.m_CosThetaInterval = 1.0f / ( cosThetaCount - 1 );
+            integral.m_EtaBegin         = etaTBegin;
+            integral.m_EtaInterval      = etaCount > 1 ? ( etaTEnd - integral.m_EtaBegin ) / ( etaCount - 1 ) : 0.0f;
+            integral.m_EtaI             = etaI;
+            integral.m_AlphaCount       = alphaCount;
+            integral.m_Invert           = invert;
+            integral.m_OutputBuffer     = energyBuffer;
+            integral.m_Rngs             = rngs;
+            integral.m_SampleCount      = sampleCount;
+
+            using std::placeholders::_1;
+            using std::placeholders::_2;
+            using std::placeholders::_3;
+            MP::LaneFunctionType laneFunction = std::bind( &SEnergyIntegral::Execute_CookTorranceMicrofacetBRDF, &integral, _1, _2, _3 );
+            MP::Dispatch( threadSize, threadCount, laneFunction );
+
+            delete[] rngs;
+
+            PrintEnergyBuffer( energyBuffer, threadSize, alphaCount, etaCount );
         }
-        else
+
+        if ( outputAverageEnergyBuffer )
         {
-            threadSize  = etaCount;
-            threadCount = kCount;
-            sliceCount  = 1;
+            uint32_t threadSize = 1;
+            uint32_t threadCount = alphaCount * etaCount;
+
+            float* outputBuffer = new float[ threadSize * threadCount ];
+            SAverageEnergyIntegral integral;
+            integral.m_EnergyBuffer  = energyBuffer;
+            integral.m_CosThetaCount = cosThetaCount;
+            integral.m_OutputBuffer  = outputBuffer;
+
+            using std::placeholders::_1;
+            using std::placeholders::_2;
+            using std::placeholders::_3;
+            MP::LaneFunctionType laneFunction = std::bind( &SAverageEnergyIntegral::Execute, &integral, _1, _2, _3 );
+            MP::Dispatch( threadSize, threadCount, laneFunction );
+
+            PrintEnergyBuffer( outputBuffer, alphaCount, etaCount, 1 );
+
+            delete[] outputBuffer;
         }
-        energyBuffer = new float[ threadSize * threadCount ];
-        SRandomNumberGenerator* rngs = new SRandomNumberGenerator[ threadCount ];
 
-        SEnergyIntegral integral;
-        integral.m_AlphaInterval    = 1.0f / ( alphaCount - 1 );
-        integral.m_CosThetaInterval = 1.0f / ( cosThetaCount - 1 );
-        integral.m_EtaBegin         = etaTBegin;
-        integral.m_EtaInterval      = etaCount > 1 ? ( etaTEnd - integral.m_EtaBegin ) / ( etaCount - 1 ) : 0.0f;
-        integral.m_EtaI             = etaI;
-        integral.m_kInterval        = kEnd / ( kCount - 1 );
-        integral.m_AlphaCount       = alphaCount;
-        integral.m_Invert           = invert;
-        integral.m_OutputBuffer     = energyBuffer;
-        integral.m_Rngs             = rngs;
-        integral.m_SampleCount      = sampleCount;
-
-        using std::placeholders::_1;
-        using std::placeholders::_2;
-        using std::placeholders::_3;
-        MP::LaneFunctionType laneFunction = std::bind( &SEnergyIntegral::Execute_FresnelConductor, &integral, _1, _2, _3 );
-        MP::Dispatch( threadSize, threadCount, laneFunction );
-
-        delete[] rngs;
-
-        if ( outputEnergyBuffer )
+        if ( outputInverseCDF )
         {
-            PrintEnergyBuffer( energyBuffer, threadSize, alphaCount, sliceCount );
+            uint32_t threadSize = 1;
+            uint32_t threadCount = alphaCount * etaCount;
+
+            float* outputBuffer = new float[ cosThetaCount * alphaCount * etaCount ];
+            float* PDFScaleOutputBuffer = new float[ alphaCount * etaCount ];
+            SComputeInvCDF invCDF;
+            invCDF.m_CosThetaCount = cosThetaCount;
+            invCDF.m_EnergyBuffer  = energyBuffer;
+            invCDF.m_MaxPDFScale   = 2.0f;
+            invCDF.m_OutputBuffer  = outputBuffer;
+            invCDF.m_PDFScaleOutputBuffer = PDFScaleOutputBuffer;
+
+            using std::placeholders::_1;
+            using std::placeholders::_2;
+            using std::placeholders::_3;
+            MP::LaneFunctionType laneFunction = std::bind( &SComputeInvCDF::Execute, &invCDF, _1, _2, _3 );
+            MP::Dispatch( threadSize, threadCount, laneFunction );
+
+            PrintEnergyBuffer( outputBuffer, cosThetaCount, alphaCount, etaCount );
+            PrintEnergyBuffer( PDFScaleOutputBuffer, alphaCount, etaCount, 1 );
+
+            delete[] outputBuffer;
+            delete[] PDFScaleOutputBuffer;
         }
+
+        delete[] energyBuffer;
     }
 
-    if ( outputAverageEnergyBuffer )
+    if ( outputAverageFresnel )
     {
-        uint32_t threadSize = 1;
-        uint32_t threadCount = alphaCount * etaCount;
+        uint32_t threadSize = etaCount;
+        uint32_t threadCount = kCount;
 
         float* outputBuffer = new float[ threadSize * threadCount ];
-        SAverageEnergyIntegral integral;
-        integral.m_EnergyBuffer  = energyBuffer;
+        SAverageFresnelIntegral integral;
         integral.m_CosThetaCount = cosThetaCount;
+        integral.m_EtaBegin      = etaTBegin;
+        integral.m_EtaI          = etaI;
+        integral.m_EtaInterval   = etaCount > 1 ? ( etaTEnd - integral.m_EtaBegin ) / ( etaCount - 1 ) : 0.0f;
+        integral.m_Invert        = invert;
+        integral.m_kInterval     = kEnd / ( kCount - 1 );
         integral.m_OutputBuffer  = outputBuffer;
 
         using std::placeholders::_1;
         using std::placeholders::_2;
         using std::placeholders::_3;
-        MP::LaneFunctionType laneFunction = std::bind( &SAverageEnergyIntegral::Execute, &integral, _1, _2, _3 );
+        MP::LaneFunctionType laneFunction = std::bind( &SAverageFresnelIntegral::ExecuteConductor, &integral, _1, _2, _3 );
         MP::Dispatch( threadSize, threadCount, laneFunction );
 
-        PrintEnergyBuffer( outputBuffer, alphaCount, etaCount, 1 );
+        PrintEnergyBuffer( outputBuffer, threadSize, threadCount, 1 );
 
         delete[] outputBuffer;
     }
-
-    if ( outputInverseCDF )
-    {
-        uint32_t threadSize = 1;
-        uint32_t threadCount = alphaCount * etaCount;
-
-        float* outputBuffer = new float[ cosThetaCount * alphaCount * etaCount ];
-        float* PDFScaleOutputBuffer = new float[ alphaCount * etaCount ];
-        SComputeInvCDF invCDF;
-        invCDF.m_CosThetaCount = cosThetaCount;
-        invCDF.m_EnergyBuffer  = energyBuffer;
-        invCDF.m_MaxPDFScale   = 2.0f;
-        invCDF.m_OutputBuffer  = outputBuffer;
-        invCDF.m_PDFScaleOutputBuffer = PDFScaleOutputBuffer;
-
-        using std::placeholders::_1;
-        using std::placeholders::_2;
-        using std::placeholders::_3;
-        MP::LaneFunctionType laneFunction = std::bind( &SComputeInvCDF::Execute, &invCDF, _1, _2, _3 );
-        MP::Dispatch( threadSize, threadCount, laneFunction );
-
-        PrintEnergyBuffer( outputBuffer, cosThetaCount, alphaCount, etaCount );
-        PrintEnergyBuffer( PDFScaleOutputBuffer, alphaCount, etaCount, 1 );
-
-        delete[] outputBuffer;
-        delete[] PDFScaleOutputBuffer;
-    }
-
-    delete[] energyBuffer;
 }
 
 

@@ -13,7 +13,6 @@ public:
     void Execute_CookTorranceMicrofacetBRDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
     void Execute_CookTorranceMicrofacetBTDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
     void Execute_CookTorranceMicrofacetBSDF( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
-    void Execute_FresnelConductor( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
 
     SRandomNumberGenerator* m_Rngs;
     float    m_CosThetaInterval;
@@ -21,7 +20,6 @@ public:
     float    m_EtaInterval;
     float    m_EtaBegin;
     float    m_EtaI;
-    float    m_kInterval;
     uint32_t m_SampleCount;
     uint32_t m_AlphaCount;
     bool     m_Invert;
@@ -46,4 +44,18 @@ struct SComputeInvCDF
     float*   m_OutputBuffer;
     float*   m_PDFScaleOutputBuffer;
     float    m_MaxPDFScale;
+};
+
+struct SAverageFresnelIntegral
+{
+    void ExecuteConductor( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
+    void ExecuteDielectric( uint32_t threadIndex, uint32_t localLaneIndex, uint32_t globalLaneIndex );
+
+    uint32_t m_CosThetaCount;
+    float    m_EtaInterval;
+    float    m_EtaBegin;
+    float    m_EtaI;
+    float    m_kInterval;
+    bool     m_Invert;
+    float*   m_OutputBuffer;
 };

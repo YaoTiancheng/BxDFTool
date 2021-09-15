@@ -56,14 +56,6 @@ inline float FresnelConductor( float cosThetaI, float etaI, float etaT, float k 
     return std::max( 0.f, value );
 }
 
-inline float3 UniformSampleHemisphere( const float2& sample, float& pdf )
-{
-    pdf = float( 1.0 / M_PI_2 );
-    float r = sqrtf( 1 - sample.x );
-    float theta = float( M_PI_2 * sample.y );
-    return float3( cos( theta ) * r, sin( theta ) * r, sample.x );
-}
-
 inline float3 GGXSampleHemisphere( const float3& wo, const float2& sample, float alpha )
 {
     float U1 = sample.x;
@@ -360,17 +352,11 @@ inline void SampleCookTorranceMicrofacetBSDF( const float3& wo, float selectionS
     }
 }
 
-inline void SampleFresnel( const float2& bxdfSample, float etaI, float etaT, float k, float3& wi, float& value, float& pdf )
-{
-    wi = UniformSampleHemisphere( bxdfSample, pdf );
-    value = FresnelConductor( wi.z, etaI, etaT, k ) * wi.z;
-}
-
 
 class CookTorranceMicrofacetBRDF
 {
 public:
-    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float k, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
+    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
     {
         SampleCookTorranceMicrofacetBRDF( wo, bxdfSample, alpha, etaI, etaT, wi, value, pdf, isDeltaBxdf, lightingContext );
     }
@@ -382,7 +368,7 @@ public:
 class CookTorranceMicrofacetBTDF
 {
 public:
-    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float k, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
+    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
     {
         SampleCookTorranceMicrofacetBTDF( wo, bxdfSample, alpha, etaI, etaT, wi, value, pdf, isDeltaBxdf, lightingContext );
     }
@@ -394,21 +380,10 @@ public:
 class CookTorranceMicrofacetBSDF
 {
 public:
-    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float k, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
+    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
     {
         SampleCookTorranceMicrofacetBSDF( wo, selectionSample, bxdfSample, alpha, etaI, etaT, *wi, *value, *pdf, *isDeltaBxdf, *lightingContext );
     }
 
     static const bool s_NeedSelectionSample = true;
-};
-
-class ConductorFresnel
-{
-public:
-    static void Sample( const float3& wo, float selectionSample, const float2& bxdfSample, float alpha, float etaI, float etaT, float k, float3* wi, float* value, float* pdf, bool* isDeltaBxdf, SLightingContext* lightingContext )
-    {
-        SampleFresnel( bxdfSample, etaI, etaT, k, *wi, *value, *pdf );
-    }
-
-    static const bool s_NeedSelectionSample = false;
 };
