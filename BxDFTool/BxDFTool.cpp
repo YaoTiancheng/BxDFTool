@@ -27,6 +27,21 @@ void PrintEnergyBuffer( float* buffer, uint32_t column, uint32_t row, uint32_t s
     }
 }
 
+void PrintBufferAsDataSheet( float* buffer, uint32_t xCount, uint32_t yCount, float xStart, float yStart, float xInterval, float yInterval )
+{
+    float* pBuffer = buffer;
+    for ( uint32_t iy = 0; iy < yCount; ++iy )
+    {
+        float y = iy * yInterval + yStart;
+        for ( uint32_t ix = 0; ix < xCount; ++ix )
+        {
+            float x = ix * xInterval + xStart;
+            printf( "%.5f %.5f %.6f\n", x, y, *pBuffer );
+            pBuffer++;
+        }
+    }
+}
+
 int main()
 {
     uint32_t alphaCount = 16;
@@ -149,7 +164,7 @@ int main()
         MP::LaneFunctionType laneFunction = std::bind( &SAverageFresnelIntegral::ExecuteConductor, &integral, _1, _2, _3 );
         MP::Dispatch( threadSize, threadCount, laneFunction );
 
-        PrintEnergyBuffer( outputBuffer, threadSize, threadCount, 1 );
+        PrintBufferAsDataSheet( outputBuffer, etaCount, kCount, etaTBegin, 0.f, integral.m_EtaInterval, integral.m_kInterval );
 
         delete[] outputBuffer;
     }
